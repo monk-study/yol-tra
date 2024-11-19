@@ -1,12 +1,3 @@
-def get_correct_prediction(outputs, labels_onehot):
-    """
-    A correct prediction is when exactly one branch is 1 and it matches the true label
-    """
-    predictions = (outputs > 0).float()
-    # Check if prediction matches ground truth exactly
-    correct = torch.all(predictions == labels_onehot, dim=1)
-    return correct.sum().item(), len(correct)
-
 def train_epoch(model, train_loader, criterion, optimizer, device):
     model.train()
     total_loss = 0
@@ -22,15 +13,14 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
         optimizer.zero_grad(set_to_none=True)
         
         outputs = model(features)
-        labels_onehot = F.one_hot(labels, num_classes=len(model.module.nba_branches)).float()
+        # Change here: model.nba_branches instead of model.module.nba_branches
+        labels_onehot = F.one_hot(labels, num_classes=len(model.nba_branches)).float()
         
         loss = criterion(outputs, labels_onehot)
         loss.backward()
         
-        # Gradient clipping
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         
-        # Monitor gradients
         total_norm = 0
         for p in model.parameters():
             if p.grad is not None:
@@ -59,7 +49,6 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
     avg_loss = total_loss / len(train_loader)
     accuracy = (total_correct / total_samples) if total_samples > 0 else 0
     
-    # Print epoch summary
     print("\n\nEpoch Summary:")
     print(f"Average Loss: {avg_loss:.4f}")
     print(f"Accuracy: {accuracy:.4f}")
@@ -82,7 +71,8 @@ def evaluate(model, data_loader, criterion, device):
             labels = labels.cpu()
             
             outputs = model(features)
-            labels_onehot = F.one_hot(labels, num_classes=len(model.module.nba_branches)).float()
+            # Change here: model.nba_branches instead of model.module.nba_branches
+            labels_onehot = F.one_hot(labels, num_classes=len(model.nba_branches)).float()
             
             loss = criterion(outputs, labels_onehot)
             total_loss += loss.item()
@@ -91,20 +81,18 @@ def evaluate(model, data_loader, criterion, device):
             total_correct += correct
             total_samples += samples
             
-            # Store predictions and labels for detailed metrics
             all_outputs.append(outputs.cpu().numpy())
             all_labels.append(labels_onehot.cpu().numpy())
     
-    # Calculate accuracy
     accuracy = (total_correct / total_samples) if total_samples > 0 else 0
     
-    # Calculate detailed metrics
     all_outputs = np.vstack(all_outputs)
     all_labels = np.vstack(all_labels)
     predictions = (all_outputs > 0).astype(float)
     
     metrics = {}
-    for i, branch_name in enumerate(model.module.nba_branches.keys()):
+    # Change here: model.nba_branches instead of model.module.nba_branches
+    for i, branch_name in enumerate(model.nba_branches.keys()):
         metrics[branch_name] = {
             'precision': precision_score(all_labels[:, i], predictions[:, i], zero_division=0),
             'recall': recall_score(all_labels[:, i], predictions[:, i], zero_division=0),
