@@ -1,26 +1,21 @@
-# Cell 4: Usage example
+# First load the model
 model_path = "nn_ft_prob.pt"
-results = evaluate_saved_model(model_path, test_loader)
+saved_data = torch.load(model_path, map_location=torch.device('cpu'))
 
-# Print comprehensive metrics
-print("\nOverall Accuracy:", results['accuracy'])
-
-print("\nPer-class Metrics:")
-for class_name, metrics in results['per_class_metrics'].items():
-    print(f"\n{class_name}:")
-    print(f"Precision: {metrics['precision']:.4f}")
-    print(f"Recall: {metrics['recall']:.4f}")
-    print(f"F1-score: {metrics['f1']:.4f}")
-    print(f"AUC-ROC: {metrics['auc']:.4f}")
-
-# Analyze predictions
-analysis = analyze_predictions(results)
-
-# Plot confusion matrix using existing function
-plot_confusion_matrix(
-    results['true_labels'],
-    results['predictions'],
-    classes=saved_data['label_encoder_classes'],
-    normalize=True,
-    title='Normalized Confusion Matrix'
+# Create test dataset
+test_dataset = TPRRDataset(
+    test_df[X_columns].values,
+    le.transform(test_df[y_column])
 )
+
+# Create test loader
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=32,  # you can adjust batch size
+    shuffle=False   # don't shuffle for evaluation
+)
+
+# Now run the evaluation
+results = evaluate_saved_model(model_path, test_loader, device='cpu')  # specify device='cpu' if not using CUDA
+
+# Rest of your code for printing metrics and plotting
