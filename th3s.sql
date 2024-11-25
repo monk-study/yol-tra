@@ -1,23 +1,8 @@
--- Define the table name variable
-SET my_table = 'employee';
-
 SELECT *
-FROM (
-  SELECT *, ROW_NUMBER() OVER (ORDER BY RANDOM()) AS rn
-  FROM @{my_table}
-)
+FROM your_table t
 WHERE NOT EXISTS (
-  SELECT 1
-  FROM (
-    SELECT *, ROW_NUMBER() OVER (ORDER BY RANDOM()) AS rn
-    FROM @{my_table}  
-  ) t2
-  WHERE t2.rn = subquery.rn
-  AND EXISTS (
     SELECT 1 
-    FROM @{my_table} t3
-    WHERE t3.ROW_NUMBER() = t2.rn
-    AND OBJECT_AGG(t3.*, ',') LIKE '%,NULL,%'
-  )
+    FROM TABLE(FLATTEN(ARRAY_CONSTRUCT(*))) f 
+    WHERE f.value IS NULL
 )
 LIMIT 50;
