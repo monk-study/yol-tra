@@ -5,22 +5,10 @@ from typing import List
 def get_rows_without_nulls(session: snowpark.Session, table_name: str, limit: int = 50) -> snowpark.DataFrame:
     """
     Get rows from a Snowflake table where no columns contain NULL values.
-    
-    Args:
-        session: Snowpark session
-        table_name: Name of the table to query
-        limit: Number of rows to return (default 50)
-        
-    Returns:
-        DataFrame containing rows with no NULL values
     """
-    # Get the DataFrame
     df = session.table(table_name)
-    
-    # Get all column names
     columns: List[str] = df.columns
     
-    # Create a condition that checks if all columns are not null
     condition = None
     for col_name in columns:
         if condition is None:
@@ -28,30 +16,45 @@ def get_rows_without_nulls(session: snowpark.Session, table_name: str, limit: in
         else:
             condition = condition & col(col_name).is_not_null()
     
-    # Apply the condition and get the results
-    result_df = df.filter(condition).limit(limit)
+    return df.filter(condition).limit(limit)
+
+def main(session: snowpark.Session):
+    """
+    Main function to execute the non-null query
+    """
+    try:
+        # Replace with your table name
+        table_name = "YOUR_TABLE_NAME"
+        
+        # Get results
+        result_df = get_rows_without_nulls(session, table_name)
+        
+        # Display results
+        print(f"Found {result_df.count()} rows with no null values:")
+        result_df.show()
+        
+        # Optionally convert to pandas
+        # pandas_df = result_df.to_pandas()
+        
+        return result_df
+        
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        raise
+
+if __name__ == "__main__":
+    # Create Snowflake session
+    session = snowpark.Session.builder.configs({
+        "account": "your_account",
+        "user": "your_user",
+        "password": "your_password",
+        "role": "your_role",
+        "warehouse": "your_warehouse",
+        "database": "your_database",
+        "schema": "your_schema"
+    }).create()
     
-    return result_df
-
-# Example usage:
-"""
-# First create your session
-session = snowpark.Session.builder.configs({
-    "account": "your_account",
-    "user": "your_user",
-    "password": "your_password",
-    "role": "your_role",
-    "warehouse": "your_warehouse",
-    "database": "your_database",
-    "schema": "your_schema"
-}).create()
-
-# Then use the function
-result = get_rows_without_nulls(session, "YOUR_TABLE_NAME")
-
-# View results
-result.show()
-
-# Or convert to pandas if needed
-pandas_df = result.to_pandas()
-"""
+    try:
+        main(session)
+    finally:
+        session.close()
